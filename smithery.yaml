@@ -1,0 +1,69 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - clientId
+      - clientSecret
+      - tokenHost
+      - tokenPath
+      - authorizePath
+      - authorizationMethod
+      - audience
+      - callbackURL
+      - scopes
+      - callbackPort
+      - FHIR_BASE_URL
+      - PUBMED_API_KEY
+      - CLINICAL_TRIALS_API_KEY
+      - FDA_API_KEY
+    properties:
+      clientId:
+        type: string
+        description: The client ID for OAuth authentication.
+      clientSecret:
+        type: string
+        description: The client secret for OAuth authentication.
+      tokenHost:
+        type: string
+        description: The host URL for the OAuth token.
+      tokenPath:
+        type: string
+        description: The path for obtaining the OAuth token.
+      authorizePath:
+        type: string
+        description: The authorization path for OAuth.
+      authorizationMethod:
+        type: string
+        description: The method of authorization.
+      audience:
+        type: string
+        description: The audience for the OAuth token.
+      callbackURL:
+        type: string
+        description: The callback URL for OAuth.
+      scopes:
+        type: string
+        description: The scopes for OAuth.
+      callbackPort:
+        type: number
+        description: The port for the OAuth callback.
+      FHIR_BASE_URL:
+        type: string
+        description: The base URL for FHIR services.
+      PUBMED_API_KEY:
+        type: string
+        description: The API key for PubMed.
+      CLINICAL_TRIALS_API_KEY:
+        type: string
+        description: The API key for Clinical Trials.
+      FDA_API_KEY:
+        type: string
+        description: The API key for FDA.
+  commandFunction:
+    # A function that produces the CLI command to start the MCP on stdio.
+    |-
+    (config) => ({ command: 'node', args: ['build/index.js'], env: config })
