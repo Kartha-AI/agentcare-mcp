@@ -1,4 +1,5 @@
 # Agent Care: An MCP Server for EMRs like Cerner and Epic
+[![smithery badge](https://smithery.ai/badge/@Kartha-AI/agentcare-mcp)](https://smithery.ai/server/@Kartha-AI/agentcare-mcp)
 
 A Model Context Protocol (MCP) server that provides healthcare tools and prompts for interacting with FHIR data and medical resources on EMRs like Cerner and Epic.
 
@@ -175,3 +176,12 @@ If Claude desktop is running it uses port 3456 for Auth. You need to terminate t
 ````
 kill -9 $(lsof -t -i:3456)
 ````
+
+### Installing via Smithery
+
+To install Agent Care for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@Kartha-AI/agentcare-mcp):
+
+```bash
+npx -y @smithery/cli install @Kartha-AI/agentcare-mcp --client claude
+```
+
