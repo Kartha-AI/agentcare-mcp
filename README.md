@@ -1,6 +1,6 @@
 # Agent Care: An MCP Server for EMRs like Cerner and Epic
 
-A Model Context Protocol (MCP) server that provides healthcare tools and prompts for interacting with FHIR data and medical resources on EMRs like Cerner and Epic.
+A Model Context Protocol (MCP) server that provides healthcare tools and prompts for interacting with FHIR data and medical resources on EMRs like Cerner and Epic using Claude Desktop and Goose Desktop.
 
 [![smithery badge](https://smithery.ai/badge/@Kartha-AI/agentcare-mcp)](https://smithery.ai/server/@Kartha-AI/agentcare-mcp)
 
@@ -174,3 +174,15 @@ If Claude desktop is running it uses port 3456 for Auth. You need to terminate t
 ````
 kill -9 $(lsof -t -i:3456)
 ````
+
+## Use Goose
+Goose is an open Source AI Agent frameowrk from Block(Stripe) that works with MCP servers. Goose Desktop is like Claude Desktop that can work with MCP servers. But Goose can be configured to use models other than Anthropic as well. More info: https://block.xyz/inside/block-open-source-introduces-codename-goose
+
+See below how Goose Desktop works with Agent Care:
+(goose extension will be configured with command: 
+/Users/your-username/{agentcare-download-path}/agent-care-mcp/build/index.js)
+
+<img src="screenshots/goose-extension.png" alt="Cerner" width="700">
+<img src="screenshots/goose-env.png" alt="Epic" width="700">
+<img src="screenshots/goose-model.png" alt="Converse" width="700">
+<img src="screenshots/goose-in-action.png" alt="Soap Notes" width="700">
