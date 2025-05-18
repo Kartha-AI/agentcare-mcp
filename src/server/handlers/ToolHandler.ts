@@ -39,6 +39,7 @@ export class ToolHandler {
   });
 
   private handleCall = async (request: any) => {
+    // Skip patient ID validation for tools that don't require it
     if(request.params?.name != "find_patient" && request.params?.name != "get-drug"
       && request.params?.name != "search-trials" && request.params?.name != "search-pubmed") 
      { 
@@ -88,6 +89,46 @@ export class ToolHandler {
           return await this.fhirClient.getMedicationHistory(request.params.arguments);
         case "get_appointments":
           return await this.fhirClient.getPatientAppointments(request.params.arguments);
+        // Dialysis-specific tools
+        case "get_dialysis_sessions":
+          return await this.fhirClient.getDialysisSessions(request.params.arguments);
+        case "track_dialysis_metrics":
+          return await this.fhirClient.getDialysisMetrics(request.params.arguments);
+        case "manage_vascular_access":
+          return await this.fhirClient.getVascularAccess(request.params.arguments);
+          
+        // Dialysis Treatment Planning Tools
+        case "schedule_dialysis_session":
+          return await this.fhirClient.scheduleDialysisSession(request.params.arguments);
+        case "get_dialysis_prescription":
+          return await this.fhirClient.getDialysisPrescription(request.params.arguments);
+        case "compare_dialysis_modalities":
+          return await this.fhirClient.compareDialysisModalities(request.params.arguments);
+          
+        // Complication Monitoring Tools
+        case "track_intradialytic_events":
+          return await this.fhirClient.trackIntradialyticEvents(request.params.arguments);
+        case "monitor_access_complications":
+          return await this.fhirClient.monitorAccessComplications(request.params.arguments);
+        case "assess_bleeding_risk":
+          return await this.fhirClient.assessBleedingRisk(request.params.arguments);
+          
+        // Nutritional and Mineral Management Tools
+        case "track_dialysis_diet":
+          return await this.fhirClient.trackDialysisDiet(request.params.arguments);
+        case "manage_mineral_bone_disorder":
+          return await this.fhirClient.manageMineralBoneDisorder(request.params.arguments);
+        case "calculate_protein_nitrogen_appearance":
+          return await this.fhirClient.calculateProteinNitrogenAppearance(request.params.arguments);
+          
+        // Quality Measures and Outcomes Tools
+        case "report_dialysis_quality_metrics":
+          return await this.fhirClient.reportDialysisQualityMetrics(request.params.arguments);
+        case "predict_hospitalization_risk":
+          return await this.fhirClient.predictHospitalizationRisk(request.params.arguments);
+        case "analyze_dialysis_population_trends":
+          return await this.fhirClient.analyzeDialysisPopulationTrends(request.params.arguments);
+        // Medical research tools
         case "search-pubmed":
           return await this.pubmedApi.getArticles(request.params.arguments,this.cache);
         case "search-trials":
