@@ -8,7 +8,7 @@ A Model Context Protocol (MCP) server that provides healthcare tools and prompts
 [![Demo](screenshots/demo.png)](https://www.agentcare.ai/demo.mp4)
 
 ## Features
-- EMR integrartion using SMART on FHIR APIs
+- EMR integration using SMART on FHIR APIs
 - Uses OAuth2 to authenticate with EMRs 
 - Anthropic Claude Desktop integration
 - Medical research integration (PubMed, Clinical Trials, FDA)
@@ -60,7 +60,7 @@ Each tool  requires specific parameters:
   - `drug-interactions`: requires `drugs` array
 
 ## Development Configuration 
-- To use with Cerener: Go to https://code-console.cerner.com and create a sandbox account, create a new provider app and get the clientId/secret.
+- To use with Cerner: Go to https://code-console.cerner.com and create a sandbox account, create a new provider app and get the clientId/secret.
 (note: ec2458f2-1e24-41c8-b71b-0e701af7583d below is the tenant id for cerner developer sandbox)
 
 - To use with Epic: Go to https://fhir.epic.com/Developer/Apps , sign up as developer and create a new app and get the clientId/secret.
@@ -176,7 +176,7 @@ kill -9 $(lsof -t -i:3456)
 ````
 
 ## Use Goose
-Goose is an open Source AI Agent frameowrk from Block(Stripe) that works with MCP servers. Goose Desktop is like Claude Desktop that can work with MCP servers. But Goose can be configured to use models other than Anthropic as well. More info: https://block.xyz/inside/block-open-source-introduces-codename-goose
+Goose is an open Source AI Agent framework from Block(Stripe) that works with MCP servers. Goose Desktop is like Claude Desktop that can work with MCP servers. But Goose can be configured to use models other than Anthropic as well. More info: https://block.xyz/inside/block-open-source-introduces-codename-goose
 
 See below how Goose Desktop works with Agent Care:
 (goose extension will be configured with command: 
