@@ -479,3 +479,276 @@ export interface Metric {
   date: string;
 }
 
+// Dialysis-specific formatting functions
+export function formatDialysisSessions(bundle: any): string {
+  if (!bundle.entry || bundle.entry.length === 0) {
+    return "No dialysis sessions found for the specified criteria";
+  }
+
+  return bundle.entry
+    .map((entry: any) => {
+      const session = entry.resource;
+      
+      // Extract basic session information
+      const startTime = session.period?.start ? new Date(session.period.start) : null;
+      const endTime = session.period?.end ? new Date(session.period.end) : null;
+      
+      // Calculate duration if both start and end times are available
+      let duration = '';
+      if (startTime && endTime) {
+        const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+        duration = `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}m`;
+      }
+      
+      // Format the session date and time
+      const sessionDate = startTime ? startTime.toISOString().split('T')[0] : 'Unknown date';
+      const sessionTime = startTime ? 
+        `${startTime.toTimeString().split(' ')[0]} - ${endTime ? endTime.toTimeString().split(' ')[0] : 'ongoing'}` : 
+        'Unknown time';
+      
+      // Extract ultrafiltration volume from observations linked to this procedure
+      const ufVolume = session.extension?.find((ext: any) => 
+        ext.url === "http://hl7.org/fhir/StructureDefinition/procedure-targetBodySite" &&
+        ext.valueReference?.display === "Ultrafiltration volume"
+      )?.valueQuantity?.value || 'Not recorded';
+      
+      const ufUnit = session.extension?.find((ext: any) => 
+        ext.url === "http://hl7.org/fhir/StructureDefinition/procedure-targetBodySite" &&
+        ext.valueReference?.display === "Ultrafiltration volume"
+      )?.valueQuantity?.unit || 'L';
+      
+      // Extract complications
+      const complications = session.complication?.map((comp: any) => 
+        comp.coding?.[0]?.display || 'Unknown complication'
+      ).join(', ') || 'None recorded';
+      
+      // Extract location
+      const location = session.locationReference?.display || session.location?.display || 'Unknown location';
+      
+      return `
+Session Date: ${sessionDate}
+Time: ${sessionTime}
+Duration: ${duration || 'Not completed'}
+Location: ${location}
+Status: ${session.status || 'Unknown status'}
+Ultrafiltration Volume: ${ufVolume} ${ufUnit}
+Complications: ${complications}
+${session.note ? `Notes: ${session.note.map((n: any) => n.text).join(', ')}` : ''}
+-------------------`;
+    })
+    .join('\n');
+}
+
+export function formatDialysisMetrics(bundle: any, metricType: string, format: string): string {
+  if (!bundle.entry || bundle.entry.length === 0) {
+    return `No ${metricType} metrics found for the specified criteria`;
+  }
+  
+  // Filter observations based on metric type
+  const metricCodes: any = {
+    'kt-v': ['81883-2'], // LOINC code for Kt/V
+    'urr': ['51952-9'],  // LOINC code for Urea reduction ratio
+    'fluid-removal': ['76297-2', '3141-9'], // LOINC codes for fluid removal and weight change
+    'all': ['81883-2', '51952-9', '76297-2', '3141-9']
+  };
+  
+  const relevantCodes = metricCodes[metricType] || metricCodes['all'];
+  
+  const filteredEntries = bundle.entry.filter((entry: any) => {
+    const coding = entry.resource.code?.coding || [];
+    return coding.some((code: any) => relevantCodes.includes(code.code));
+  });
+  
+  if (filteredEntries.length === 0) {
+    return `No ${metricType} metrics found for the specified criteria`;
+  }
+  
+  // Sort entries by date (newest first)
+  filteredEntries.sort((a: any, b: any) => {
+    const dateA = a.resource.effectiveDateTime || '';
+    const dateB = b.resource.effectiveDateTime || '';
+    return dateB.localeCompare(dateA);
+  });
+  
+  // Format based on requested format
+  if (format === 'latest') {
+    // Group by metric and show only the latest value for each
+    const metricGroups = new Map();
+    
+    filteredEntries.forEach((entry: any) => {
+      const code = entry.resource.code?.coding?.[0]?.code || 'unknown';
+      const display = entry.resource.code?.coding?.[0]?.display || 'Unknown metric';
+      
+      if (!metricGroups.has(code)) {
+        metricGroups.set(code, {
+          name: display,
+          value: entry.resource.valueQuantity?.value || 'No value',
+          unit: entry.resource.valueQuantity?.unit || '',
+          date: entry.resource.effectiveDateTime?.split('T')[0] || 'unknown date',
+          interpretation: formatInterpretation(entry.resource)
+        });
+      }
+    });
+    
+    return Array.from(metricGroups.values())
+      .map((metric: any) => `${metric.name}: ${metric.value} ${metric.unit} (${metric.date}) ${metric.interpretation}`)
+      .join('\n');
+  }
+  else if (format === 'trend') {
+    // Group by metric type and show historical trend
+    const metricGroups = new Map();
+    
+    filteredEntries.forEach((entry: any) => {
+      const code = entry.resource.code?.coding?.[0]?.code || 'unknown';
+      const display = entry.resource.code?.coding?.[0]?.display || 'Unknown metric';
+      
+      if (!metricGroups.has(code)) {
+        metricGroups.set(code, {
+          name: display,
+          values: []
+        });
+      }
+      
+      metricGroups.get(code).values.push({
+        value: entry.resource.valueQuantity?.value || 'No value',
+        unit: entry.resource.valueQuantity?.unit || '',
+        date: entry.resource.effectiveDateTime?.split('T')[0] || 'unknown date'
+      });
+    });
+    
+    return Array.from(metricGroups.entries())
+      .map(([code, data]: [string, any]) => {
+        const values = data.values
+          .map((v: any) => `  ${v.date}: ${v.value} ${v.unit}`)
+          .join('\n');
+        
+        return `${data.name}:\n${values}`;
+      })
+      .join('\n\n');
+  }
+  else { // summary
+    // Calculate statistics for each metric type
+    const metricGroups = new Map();
+    
+    filteredEntries.forEach((entry: any) => {
+      const code = entry.resource.code?.coding?.[0]?.code || 'unknown';
+      const display = entry.resource.code?.coding?.[0]?.display || 'Unknown metric';
+      const value = entry.resource.valueQuantity?.value;
+      
+      if (!metricGroups.has(code)) {
+        metricGroups.set(code, {
+          name: display,
+          unit: entry.resource.valueQuantity?.unit || '',
+          values: [],
+          count: 0,
+          sum: 0,
+          min: Infinity,
+          max: -Infinity
+        });
+      }
+      
+      const group = metricGroups.get(code);
+      
+      if (value !== undefined && !isNaN(value)) {
+        group.values.push(value);
+        group.count++;
+        group.sum += value;
+        group.min = Math.min(group.min, value);
+        group.max = Math.max(group.max, value);
+      }
+    });
+    
+    return Array.from(metricGroups.values())
+      .map((metric: any) => {
+        if (metric.count === 0) {
+          return `${metric.name}: No valid values recorded`;
+        }
+        
+        const avg = metric.sum / metric.count;
+        return `${metric.name} (${metric.unit}):\n` +
+               `  Latest: ${metric.values[0]}\n` +
+               `  Average: ${avg.toFixed(2)}\n` +
+               `  Range: ${metric.min.toFixed(2)} - ${metric.max.toFixed(2)}\n` +
+               `  Measurements: ${metric.count}`;
+      })
+      .join('\n\n');
+  }
+}
+
+export function formatVascularAccess(bundle: any, includeHistory: boolean): string {
+  if (!bundle.entry || bundle.entry.length === 0) {
+    return "No vascular access information found for the specified criteria";
+  }
+  
+  // Sort by date (newest first) for current access, but chronological for history
+  const sortedEntries = [...bundle.entry];
+  sortedEntries.sort((a: any, b: any) => {
+    const dateA = a.resource.performedDateTime || a.resource.performedPeriod?.start || '';
+    const dateB = b.resource.performedDateTime || b.resource.performedPeriod?.start || '';
+    return includeHistory ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+  });
+  
+  // If not including history, only show the most recent access of each type
+  const accessEntries = includeHistory ? sortedEntries : 
+    sortedEntries.filter((entry: any, index: number, self: any[]) => {
+      const accessType = getAccessType(entry.resource);
+      return index === self.findIndex((e: any) => getAccessType(e.resource) === accessType);
+    });
+  
+  return accessEntries
+    .map((entry: any) => {
+      const access = entry.resource;
+      const accessType = getAccessType(access);
+      const location = access.bodySite?.coding?.[0]?.display || access.bodySite?.text || 'Unknown location';
+      const date = access.performedDateTime?.split('T')[0] || 
+                  access.performedPeriod?.start?.split('T')[0] || 
+                  'Unknown date';
+      
+      // Get complications if any
+      const complications = access.complication?.map((comp: any) => 
+        comp.coding?.[0]?.display || comp.text || 'Unknown complication'
+      ).join(', ') || 'None recorded';
+      
+      // Get assessment results if any
+      const assessments = access.extension?.filter((ext: any) => 
+        ext.url === "http://hl7.org/fhir/StructureDefinition/procedure-followUp"
+      ).map((ext: any) => 
+        ext.valueCodeableConcept?.coding?.[0]?.display || 
+        ext.valueCodeableConcept?.text || 
+        'Unknown assessment'
+      ).join(', ') || 'No assessment recorded';
+      
+      return `
+Access Type: ${accessType}
+Location: ${location}
+Creation/Modification Date: ${date}
+Status: ${access.status || 'Unknown status'}
+${complications !== 'None recorded' ? `Complications: ${complications}` : 'No complications recorded'}
+Assessment: ${assessments}
+${access.note ? `Notes: ${access.note.map((n: any) => n.text).join(', ')}` : ''}
+-------------------`;
+    })
+    .join('\n');
+}
+
+// Helper function to determine access type from procedure codes
+function getAccessType(procedure: any): string {
+  const coding = procedure.code?.coding || [];
+  const code = coding[0]?.code || '';
+  const display = coding[0]?.display || '';
+  
+  // Check for common procedure codes or descriptions
+  if (code === '34530-6' || display.toLowerCase().includes('fistula')) {
+    return 'Arteriovenous Fistula';
+  }
+  else if (code === '34532-2' || display.toLowerCase().includes('graft')) {
+    return 'Arteriovenous Graft';
+  }
+  else if (code === '36818' || display.toLowerCase().includes('catheter')) {
+    return 'Central Venous Catheter';
+  }
+  else {
+    return display || 'Unknown Access Type';
+  }
+}
+

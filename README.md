@@ -1,188 +1,261 @@
-# Agent Care: An MCP Server for EMRs like Cerner and Epic
+# AgentCare MCP Dialysis Tools
 
-A Model Context Protocol (MCP) server that provides healthcare tools and prompts for interacting with FHIR data and medical resources on EMRs like Cerner and Epic using Claude Desktop and Goose Desktop.
+This document provides an overview of the specialized dialysis-related MCP tools implemented in AgentCare MCP.
 
-[![smithery badge](https://smithery.ai/badge/@Kartha-AI/agentcare-mcp)](https://smithery.ai/server/@Kartha-AI/agentcare-mcp)
+## Overview
 
-## Demo
-[![Demo](screenshots/demo.png)](https://www.agentcare.ai/demo.mp4)
+The AgentCare MCP includes specialized tools for managing end-stage renal disease (ESRD) patients on dialysis. These tools are categorized into:
 
-## Features
-- EMR integrartion using SMART on FHIR APIs
-- Uses OAuth2 to authenticate with EMRs 
-- Anthropic Claude Desktop integration
-- Medical research integration (PubMed, Clinical Trials, FDA)
-- Response caching
-- Error handling
-- Null-safe data formatting
-- Comprehensive clinical analysis
+1. Basic Dialysis Information
+2. Treatment Planning
+3. Complication Monitoring
+4. Nutritional and Mineral Management
+5. Quality Measures and Outcomes
 
-## Screenshots
+## Connection Setup
 
-<img src="screenshots/cerner.png" alt="Cerner" width="700">
-<img src="screenshots/epic.png" alt="Epic" width="700">
-<img src="screenshots/converse.png" alt="Converse" width="700">
-<img src="screenshots/soap.png" alt="Soap Notes" width="700">
-<img src="screenshots/timeline.png" alt="Timeline" width="700">
+### Claude Desktop
 
-## Tools
+1. Use the configuration file at `config/claude_desktop_simplified.json`
+2. In Claude Desktop, go to Settings → MCPs → Add MCP from file
+3. Select the `claude_desktop_simplified.json` file
+4. After adding, click "Connect" to connect to the MCP
 
-### FHIR Tools
-- `find_patient` - Search for a patient by name, DOB, or other identifiers
-- `get_patient_observations` - Retrieve patient observations/vital signs
-- `get_patient_conditions` - Get patient's active conditions
-- `get_patient_medications` - Get patient's current medications
-- `get_patient_encounters` - Get patient's clinical encounters
-- `get_patient_allergies` - Get patient's allergies and intolerances
-- `get_patient_procedures` - Get patient's procedures
-- `get_patient_careteam` - Get patient's care team members
-- `get_patient_careplans` - Get patient's active care plans
-- `get_vital_signs` - Get patient's vital signs
-- `get_lab_results` - Get patient's laboratory results
-- `get_medications_history` - Get patient's medication history
-- `clinical_query` - Execute custom FHIR queries
+### Goose
 
-### Medical Research Tools
-- `search-pubmed` - Search PubMed articles related to medical conditions
-- `search-trials` - Find relevant clinical trials
-- `drug-interactions` - Check drug-drug interactions
+1. Use the configuration file at `config/goose_launcher.json`
+2. In Goose, go to Extension → Core Extensions → MCP Launcher
+3. Configure the extension using the `goose_launcher.json` file
+4. Connect to the MCP using the "agentcare" name
 
-## Usage
+## Basic Dialysis Tools
 
-Each tool  requires specific parameters:
+### Get Dialysis Sessions
 
-### Required Parameters
-- Most tools require `patientId`
-- Some tools have additional parameters:
-  - `lab_trend_analysis`: requires `labType`
-  - `search-pubmed`: requires `query` and optional `maxResults`
-  - `search-trials`: requires `condition` and optional `location`
-  - `drug-interactions`: requires `drugs` array
-
-## Development Configuration 
-- To use with Cerener: Go to https://code-console.cerner.com and create a sandbox account, create a new provider app and get the clientId/secret.
-(note: ec2458f2-1e24-41c8-b71b-0e701af7583d below is the tenant id for cerner developer sandbox)
-
-- To use with Epic: Go to https://fhir.epic.com/Developer/Apps , sign up as developer and create a new app and get the clientId/secret.
-
-- For PubMed, Clinical Trials and FDA, you need to get the API keys from the respective websites.
-  - https://clinicaltrials.gov/api/v2/studies
-  - https://eutils.ncbi.nlm.nih.gov/entrez/eutils
-  - https://api.fda.gov/drug/ndc.json
-
-For local testing Create a `.env` file in the root directory or use these environment variables in claude desktop launch configuration.
-#### Cerner
-````
-OAUTH_CLIENT_ID="XXXXX",
-OAUTH_CLIENT_SECRET="XXXXXXX",
-OAUTH_TOKEN_HOST="https://authorization.cerner.com", 
-OAUTH_AUTHORIZE_PATH="/tenants/ec2458f2-1e24-41c8-b71b-0e701af7583d/protocols/oauth2/profiles/smart-v1/personas/provider/authorize",
-OAUTH_AUTHORIZATION_METHOD='header',
-OAUTH_TOKEN_PATH="/tenants/ec2458f2-1e24-41c8-b71b-0e701af7583d/hosts/api.cernermillennium.com/protocols/oauth2/profiles/smart-v1/token",
-OAUTH_AUDIENCE="https://fhir-ehr.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d",
-OAUTH_CALLBACK_URL="http://localhost:3456/oauth/callback",
-OAUTH_SCOPES="user/Patient.read user/Condition.read user/Observation.read user/MedicationRequest.read user/AllergyIntolerance.read user/Procedure.read user/CarePlan.read user/CareTeam.read user/Encounter.read user/Immunization.read",
-OAUTH_CALLBACK_PORT="3456"
-FHIR_BASE_URL:any = "https://fhir-ehr.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d" 
-PUBMED_API_KEY=your_pubmed_api_key
-CLINICAL_TRIALS_API_KEY=your_trials_api_key
-FDA_API_KEY=your_fda_api_key
-````
-#### Epic
-````
-OAUTH_CLIENT_ID="XXXXXXX",
-OAUTH_CLIENT_SECRET="",
-OAUTH_TOKEN_HOST="https://fhir.epic.com",
-OAUTH_AUTHORIZE_PATH="/interconnect-fhir-oauth/oauth2/authorize",
-OAUTH_AUTHORIZATION_METHOD='body',
-OAUTH_TOKEN_PATH="/interconnect-fhir-oauth/oauth2/token",
-OAUTH_AUDIENCE="https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4",
-OAUTH_CALLBACK_URL="http://localhost:3456/oauth/callback",
-OAUTH_SCOPES="user/Patient.read user/Observation.read user/MedicationRequest.read user/Condition.read user/AllergyIntolerance.read user/Procedure.read user/CarePlan.read user/CareTeam.read user/Encounter.read user/Immunization.read",
-OAUTH_CALLBACK_PORT=3456
-FHIR_BASE_URL:any = "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4" //EPIC  
-PUBMED_API_KEY=your_pubmed_api_key
-CLINICAL_TRIALS_API_KEY=your_trials_api_key
-FDA_API_KEY=your_fda_api_key
-````
-
-## Start MCP Server Locally 
-````
-git clone {agentcare-mcp-github path}
-cd agentcare-mcp
-npm install
-npm run build
-````
-
-## Use claude desktop
-````
-for claude desktop: 
-macOS: ~/Library/Application Support/Claude/claude_desktop_config.json
-(use the env variables as shown above)
-
+```json
 {
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/Users/your-username/Desktop"
-      ]
-    },
-    "agent-care": {
-      "command": "node",
-      "args": [
-        "/Users/your-username/{agentcare-download-path}/agent-care-mcp/build/index.js"
-      ],
-      "env": {
-        "OAUTH_CLIENT_ID": XXXXXX,
-        "OAUTH_CLIENT_SECRET":XXXXXXX,
-        "OAUTH_TOKEN_HOST":,
-        "OAUTH_TOKEN_PATH":,
-        "OAUTH_AUTHORIZE_PATH",
-        "OAUTH_AUTHORIZATION_METHOD": ,
-        "OAUTH_AUDIENCE":,
-        "OAUTH_CALLBACK_URL":,
-        "OAUTH_SCOPES":,
-        "OAUTH_CALLBACK_PORT":,
-        "FHIR_BASE_URL":,
-        "PUBMED_API_KEY":,
-        "CLINICAL_TRIALS_API_KEY":,
-        "FDA_API_KEY":
-      }
-    }
+  "name": "get_dialysis_sessions",
+  "arguments": {
+    "patientId": "123456",
+    "dateFrom": "2023-01-01",
+    "dateTo": "2023-06-01",
+    "status": "completed",
+    "location": "Davita Dialysis Center"
   }
 }
-````
-## Use MCP Inspectopr
-(MCP Server using inspector. Make sure to update the .env file with the correct values.)
-````
-npm install -g @modelcontextprotocol/inspector
-mcp-inspector  build/index.js
-http://localhost:5173
+```
 
-````
+### Track Dialysis Metrics
 
-## Test User Logins
-(commonly used for sandbox/dev)
-- Cerner: portal | portal 
-- Epic: FHIRTWO | EpicFhir11! 
+```json
+{
+  "name": "track_dialysis_metrics",
+  "arguments": {
+    "patientId": "123456",
+    "metricType": "kt-v",
+    "dateFrom": "2023-01-01",
+    "dateTo": "2023-06-01",
+    "format": "trend"
+  }
+}
+```
 
-## Troubleshooting:
-If Claude desktop is running it uses port 3456 for Auth. You need to terminate that process using the following command:
-````
-kill -9 $(lsof -t -i:3456)
-````
+### Manage Vascular Access
 
-## Use Goose
-Goose is an open Source AI Agent frameowrk from Block(Stripe) that works with MCP servers. Goose Desktop is like Claude Desktop that can work with MCP servers. But Goose can be configured to use models other than Anthropic as well. More info: https://block.xyz/inside/block-open-source-introduces-codename-goose
+```json
+{
+  "name": "manage_vascular_access",
+  "arguments": {
+    "patientId": "123456",
+    "accessType": "fistula",
+    "includeHistory": true
+  }
+}
+```
 
-See below how Goose Desktop works with Agent Care:
-(goose extension will be configured with command: 
-/Users/your-username/{agentcare-download-path}/agent-care-mcp/build/index.js)
+## Treatment Planning Tools
 
-<img src="screenshots/goose-extension.png" alt="Cerner">
-<img src="screenshots/goose-env.png" alt="Epic">
-<img src="screenshots/goose-model.png" alt="Converse" >
-<img src="screenshots/goose-in-action.png" alt="Soap Notes">
+### Schedule Dialysis Session
+
+```json
+{
+  "name": "schedule_dialysis_session",
+  "arguments": {
+    "patientId": "123456",
+    "sessionDate": "2023-07-15",
+    "startTime": "14:00",
+    "duration": 240,
+    "modality": "hemodialysis",
+    "location": "Davita Dialysis Center",
+    "notes": "Patient prefers cooler dialysate"
+  }
+}
+```
+
+### Get Dialysis Prescription
+
+```json
+{
+  "name": "get_dialysis_prescription",
+  "arguments": {
+    "patientId": "123456",
+    "modality": "hemodialysis",
+    "active": true
+  }
+}
+```
+
+### Compare Dialysis Modalities
+
+```json
+{
+  "name": "compare_dialysis_modalities",
+  "arguments": {
+    "patientId": "123456",
+    "metrics": ["clearance", "quality-of-life", "cardiovascular-impact"],
+    "timeframe": "6m"
+  }
+}
+```
+
+## Complication Monitoring Tools
+
+### Track Intradialytic Events
+
+```json
+{
+  "name": "track_intradialytic_events",
+  "arguments": {
+    "patientId": "123456",
+    "eventTypes": ["hypotension", "cramping"],
+    "dateFrom": "2023-01-01",
+    "dateTo": "2023-06-01",
+    "format": "trend"
+  }
+}
+```
+
+### Monitor Access Complications
+
+```json
+{
+  "name": "monitor_access_complications",
+  "arguments": {
+    "patientId": "123456",
+    "accessType": "fistula",
+    "complicationTypes": ["infection", "stenosis", "thrombosis"]
+  }
+}
+```
+
+### Assess Bleeding Risk
+
+```json
+{
+  "name": "assess_bleeding_risk",
+  "arguments": {
+    "patientId": "123456",
+    "includeMedications": true,
+    "includeHistory": true,
+    "scoreType": "has-bled"
+  }
+}
+```
+
+## Nutritional and Mineral Management Tools
+
+### Track Dialysis Diet
+
+```json
+{
+  "name": "track_dialysis_diet",
+  "arguments": {
+    "patientId": "123456",
+    "nutrients": ["phosphorus", "potassium", "sodium"],
+    "format": "trend"
+  }
+}
+```
+
+### Manage Mineral Bone Disorder
+
+```json
+{
+  "name": "manage_mineral_bone_disorder",
+  "arguments": {
+    "patientId": "123456",
+    "parameters": ["calcium", "phosphorus", "pth", "vitamin-d"],
+    "includeRecommendations": true
+  }
+}
+```
+
+### Calculate Protein Nitrogen Appearance
+
+```json
+{
+  "name": "calculate_protein_nitrogen_appearance",
+  "arguments": {
+    "patientId": "123456",
+    "includeTrend": true
+  }
+}
+```
+
+## Quality Measures and Outcomes Tools
+
+### Report Dialysis Quality Metrics
+
+```json
+{
+  "name": "report_dialysis_quality_metrics",
+  "arguments": {
+    "patientId": "123456",
+    "metrics": ["adequacy", "anemia", "mineral-bone"],
+    "format": "patient"
+  }
+}
+```
+
+### Predict Hospitalization Risk
+
+```json
+{
+  "name": "predict_hospitalization_risk",
+  "arguments": {
+    "patientId": "123456",
+    "timeframe": "30-day",
+    "includeContributingFactors": true
+  }
+}
+```
+
+### Analyze Dialysis Population Trends
+
+```json
+{
+  "name": "analyze_dialysis_population_trends",
+  "arguments": {
+    "patientId": "123456",
+    "metrics": ["mortality", "hospitalization", "adequacy"],
+    "benchmarkType": "facility"
+  }
+}
+```
+
+## Troubleshooting
+
+If you encounter issues connecting to the MCP server:
+
+1. Ensure the build is up-to-date by running `npm run build`
+2. Try running the server directly with `node build/index.js`
+3. Check that all required environment variables are set in the configuration
+4. If permissions issues occur, try the launcher script: `node serve-mcp.js`
+
+## Implementation Notes
+
+- The FHIR interface uses standard FHIR resources like Procedure, Observation, and ServiceRequest
+- Dialysis sessions use Procedure resources with dialysis-specific codes
+- Vascular access is tracked as Procedure with specialized access type coding
+- Dialysis metrics use Observation resources with appropriate LOINC codes
+- All tools include detailed formatting functions to make the data human-readable
